@@ -231,7 +231,7 @@ define expect
 end
 
 # timeContinue
-define timeContine
+define timeContinue
 	if $argc > 0
 		set $i  = $arg0
 	else 
