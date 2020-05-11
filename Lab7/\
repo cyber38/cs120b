@@ -1,0 +1,146 @@
+/*	Author: lab
+ *  Partner(s) Name: 
+ *	Lab Section:
+ *	Assignment: Lab #  Exercise #
+ *	Exercise Description: [optional - include for your own benefit]
+ *
+ *	I acknowledge all content contained herein, excluding template or example
+ *	code, is my own original work.
+ */
+#include <avr/io.h>
+#include "io.h"
+#include "timer.h"
+#ifdef _SIMULATE_
+#include "simAVRHeader.h"
+#endif
+
+enum state {Start, Begin, Zero, One1, Two, One2, Pause, Victory} state;
+unsigned char count = 0;
+unsigned char out = 0;
+unsigned char timer = 0;
+unsigned char hold = 0;
+unsigned char flag = 0;
+
+void StopLightGame(unsigned char button) {
+	switch (state) {
+		case Start:
+                        state = Begin;
+                        break;
+		case Begin:
+			state = Zero;
+			break;
+		case Zero:
+			if(timer == 6) {
+				timer = 0;
+				state = One1;
+			} else if (button) {
+				state = Pause;
+			} else {
+				state = Zero;
+			}
+			break;
+		case One1:
+			if(timer == 6) {
+				timer = 0;
+				state = Two;
+			} else if (button) {
+				state = Pause;
+			} else {
+				state = One1;
+			}
+			break;
+		case Two:
+			if(timer == 6) {
+				timer = 0;
+				state = One2;
+			} else if(button) {
+				state = Pause;
+			} else {
+				state = Two;
+			}
+			break;
+		case One2:
+			if(timer == 6) {
+				timer = 0;
+				state = Zero;
+			} else if (button) {
+				state = Pause;
+			} else {
+				state = One2;
+			}
+			break;
+		case Pause:
+			if(button) {
+				state = Zero;
+			} else { 
+				state = Pause;
+			}
+		case Victory:
+			state = Victory;
+                default:
+                        state = Start;
+                        break;
+	}
+
+	switch (state) {
+		case Start:
+			break;
+		case Begin:
+			LCD_ClearScreen();
+			LCD_DisplayString(1, "Test");
+			break;
+		case Zero:
+			PORTB = 0x01;
+			hold = 0x01;
+			++timer;
+			break;
+		case One1:
+			PORTB = 0x02;
+			hold = 0x02;
+			++timer;
+			break;
+		case Two:
+			PORTB = 0x04;
+			hold = 0x04;
+			++timer;
+			break;
+		case One2:
+			PORTB = 0x02;
+			hold = 0x02;
+			++timer;
+			break;
+		case Victory:
+			LCD_DisplayString(1, "Victory!!!");
+			break;
+		case Pause:
+			PORTB = hold;
+			break;
+                default:
+                        break;
+	}
+}
+
+
+
+int main(void) {
+	DDRA = 0x00; PORTA = 0xFF;
+	DDRB = 0xFF; PORTB = 0x00;
+	DDRC = 0xFF; PORTC = 0x00;
+	DDRD = 0xFF; PORTD = 0x00;
+	
+	state = Start;
+	TimerSet(50);
+	TimerOn();
+	LCD_init();
+	unsigned char button = 0x00;
+    /* Insert DDR and PORT initializations */
+
+    /* Insert your solution below */
+    while (1) {
+	button = ~PINA & 0x03;
+	StopLightGame(button);
+	while (!TimerFlag) { };
+	TimerFlag = 0;
+    }
+    return 1;
+}
