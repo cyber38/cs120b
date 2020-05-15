@@ -1,0 +1,128 @@
+/*	Author: lab
+ *  Partner(s) Name: 
+ *	Lab Section:
+ *	Assignment: Lab #  Exercise #
+ *	Exercise Description: [optional - include for your own benefit]
+ *
+ *	I acknowledge all content contained herein, excluding template or example
+ *	code, is my own original work.
+ */
+#include <avr/io.h>
+#ifdef _SIMULATE_
+#include "simAVRHeader.h"
+#endif
+
+void set_PWM(double frequency) {
+	static double current_frequency;
+	if(frequency != current_frequency) {
+		if(!frequency) {
+			TCCR3B &= 0x08;
+		} else {
+			TCCR3B |= 0x03;
+		}
+
+		if(frequency < 0.954) {
+			OCR3A = 0xFFFF;
+		} else if (frequency > 31250) {
+			OCR3A = 0x0000;
+		} else {
+			OCR3A = (short)(8000000 / (128 * frequency)) - 1;
+		}
+
+		TCNT3 = 0;
+		current_frequency = frequency;
+	}
+}
+
+void PWM_on() {
+	TCCR3A = (1 << COM3A0);
+	TCCR3B = (1 << WGM32) | (1 << CS31) | (1 << CS30);
+	set_PWM(0);
+}
+
+void PWM_off() {
+	TCCR3A = 0x00;
+	TCCR3B = 0x00;
+}
+
+enum state {Start, off, wait, up, down} state;
+double scale[8] = {261.63, 293.66, 329.63, 349.23, 392.0, 440.0, 493.88, 523.25};
+unsigned char i = 0;
+
+void Scaling(unsigned char button) {
+	switch (state) {
+		case Start:
+			state = off;
+			break;
+		case off:
+			if(button == 0x04) {
+				PWM_on();
+				state = wait;
+			} else {
+				state = off;
+			}
+			break;
+		case wait:
+			if(button == 0x02) {
+				state = up;
+			} else if (button == 0x01) {
+				state = down;
+			} else if (button = 0x04) {
+				PWM_off();
+				state = off;
+			} else {
+				state = wait;
+			} 
+			break;
+		case up:
+			state = wait;
+			break;
+		case down: 
+			state = wait;
+			break;
+		default:
+			state = Start;
+			break;
+	}
+	
+	switch (state) {
+		case Start:
+			break;
+		case off:
+			i = 0;
+			break;
+		case wait:
+			set_PWM(0);
+			break;
+		case up:
+			if(i < 8) {
+				++i;
+			}
+			set_PWM(scale[i]);
+			break;
+		case down:
+			if(i > 0) {
+				--i;
+			}
+			set_PWM(scale[i]);
+			break;
+		default:
+			break;
+	}
+}
+
+int main(void) {
+    /* Insert DDR and PORT initializations */
+	DDRA = 0x00;
+	PORTA = 0xFF;
+	DDRB = 0xFF;
+	PORTB = 0x00;
+    /* Insert your solution below */
+	unsigned char button = 0;
+	state = Start;
+   while(1) {
+	button = ~PINA & 0x07;
+	Scaling(button);
+    }
+    return 1;
+}
