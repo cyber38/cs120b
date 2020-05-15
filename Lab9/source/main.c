@@ -46,14 +46,11 @@ void PWM_off() {
 	TCCR3B = 0x00;
 }
 
-enum state {Start, offp, offr, playc1, playv, playb1, playb2, playb3, playc2} state;
-double chorus[] = {0, 392.0, 440.0, 493.88, 0, 493.88, 440.0, 392.0, 0, 392.0, 440.0, 493.88, 440.0, 392.0, 0 ,392.0};
-double verse[] = {0, 329.63, 349.23, 392.0, 261.63, 329.63, 349.23, 392.0, 0};
-double bridge1[] = {440.0, 392.0, 0, 392.0};
-double bridge2[] = {329.63, 349.23, 329.0};
-unsigned char k = 0;
-unsigned char timer = 0;
-void Melody(unsigned char button) {
+enum state {Start, waitp, waitr, offp, offr, upp, upr, downp, downr} state;
+double scale[8] = {261.63, 293.66, 329.63, 349.23, 392.0, 440.0, 493.88, 523.25};
+unsigned char i = 0;
+
+void Scaling(unsigned char button) {
 	switch (state) {
 		case Start:
 			state = offr;
@@ -69,124 +66,89 @@ void Melody(unsigned char button) {
 			if(button == 0x04) {
 				state = offp;
 			} else {
-				state = playc1;
+				state = waitr;
 			}
 			break;
-		case playc1:
-			if(k == 16) {
-				k = 0;
-				state = playv;
+		case waitr:
+			if (button == 0x04) {
+				state = waitp;
+			} else if (button == 0x02) {
+				state = upp;
+			} else if (button == 0x01) {
+			        state = downp;
+		        } else {
+				state = waitr;
+			}
+			break;
+		case waitp:
+			if(button == 0x04) {
+				state = waitp;
+			} else { 
+				state = offr;
+			}
+			break;
+		case upp:
+			if(button == 0x02) {
+				state = upp;
 			} else {
-				state = playc1;
+				state = upr;
 			}
 			break;
-		case playv:
-			if(k == 9) {
-				k = 0;
-				state = playb1;
+		case upr:
+			state = waitr;
+			break;
+		case downp:
+			if(button == 0x01) {
+				state = downp;
 			} else {
-				state = playv;
+				state = downr;
 			}
 			break;
-		case playb1:
-			if(k == 4) {
-				k = 0;
-				state = playb2;
-			} else {
-				state = playb1;
-			}
+		case downr:
+			state = waitr;
 			break;
-		case playb2:
-			if(k == 3) {
-				k = 0;
-				state = playb3;
-			} else {
-				state = playb2;
-			}
-			break;
-		case playb3:
-			if(k == 4) {
-				k = 0;
-				state = playc2;
-			} else {
-				state = playb3;
-			}
-			break;
-		case playc2:
-			if(k == 16) {
-                                k = 0;
-                                state = offr;
-                        } else {
-                                state = playc2;
-                        }
-                        break;
 		default:
+			state = Start;
 			break;
 	}
 	
-	switch(state) {
+	switch (state) {
 		case Start:
 			break;
 		case offr:
-			k = 0;
+			if(button == 0x02) {
+				if(i < 7) {
+					++i;
+				}
+			}
+			if(button == 0x01) {
+				if(i > 0) {
+					--i;
+				}
+			}
 			set_PWM(0);
 			break;
 		case offp:
 			break;
-		case playc1:
-			set_PWM(chorus[k]);
-			++timer;
-			if(timer == 4) {
-				++k;
-				timer = 0;
+		case waitr:
+			set_PWM(scale[i]);
+			break;
+		case waitp:
+			break;
+		case upp:
+			break;
+		case upr:
+			if(i < 7) {
+				++i;
 			}
 			break;
-		case playv:
-			set_PWM(verse[k]);
-			++timer;
-			if (timer == 4) {
-				++k;
-				timer = 0;
+		case downp:
+			break;
+		case downr:
+			if(i > 0) {
+				--i;
 			}
 			break;
-		case playb1:
-			set_PWM(bridge1[k]);
-			++timer;
-			if(k == 1 || k == 2) {
-				++timer;
-			}
-			if(timer == 4) {
-				++k;
-				timer = 0;
-			}
-			break;
-		case playb2:
-			set_PWM(bridge2[k]);
-			++timer;
-			if(timer == 2) {
-                                ++k;
-                                timer = 0;
-                        }
-			break;
-		case playb3:
-			set_PWM(bridge1[k]);
-                        ++timer;
-                        if(k == 1 || k == 2) {
-                                ++timer;
-                        }
-                        if(timer == 4) {
-                                ++k;
-                                timer = 0;
-                        }
-                        break;
-		case playc2:
-			set_PWM(chorus[k]);
-                        ++timer;
-                        if(timer == 4) {
-                                ++k;
-                                timer = 0;
-                        }
-                        break;
 		default:
 			break;
 	}
@@ -201,12 +163,12 @@ int main(void) {
     /* Insert your solution below */
 	unsigned char button = 0;
 	state = Start;
-	PWM_on();
 	TimerSet(100);
 	TimerOn();
+	PWM_on();
    while(1) {
 	button = ~PINA & 0x07;
-	Melody(button);
+	Scaling(button);
 	while(!TimerFlag) {};
 	TimerFlag = 0;
     }
