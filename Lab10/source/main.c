@@ -16,6 +16,7 @@
 unsigned char blinkingLED;
 unsigned char threeLEDs;
 unsigned char audio;
+unsigned char frequency;
 
 enum B_State {B_Start, B_On, B_Off} B_State;
 void BlinkingLEDSM() {
@@ -86,6 +87,50 @@ void ThreeLEDsSM() {
 			
 }	
 
+enum R_State {R_Start, R_wait, R_up, R_down} R_State;
+void Receive(unsigned char button) {
+	switch(R_State) {
+		case R_Start:
+			R_State = R_wait;
+			break;
+		case R_wait:
+			if(button == 0x04) {
+				R_State = R_down;
+			} else if (button == 0x02) {
+				R_State = R_up;
+			} else {
+				R_State = R_wait;
+			}
+			break;
+		case R_up:
+			R_State = R_wait;
+			break;
+		case R_down:
+			R_State = R_wait;
+			break;
+		default:
+			R_State = R_Start;
+			break;
+	}
+	switch(R_State) {
+		case R_Start:
+			break;
+		case R_wait:
+			break;
+		case R_up:
+			if(frequency < 10) {
+				frequency += 2;
+			}
+			break;
+		case R_down:
+			if(frequency > 2) {
+				frequency -= 2;
+			}
+			break;
+		default:
+			break;
+	}
+}
 enum A_State {A_Start, A_off, A_onl, A_onh} A_State;
 void Speaker(unsigned char button) {
 	switch(A_State) {
@@ -93,7 +138,7 @@ void Speaker(unsigned char button) {
 			A_State = A_off;
 			break;
 		case A_off:
-			if(button) {
+			if(button == 0x01) {
 				A_State = A_onh;
 			} else {
 				A_State = A_off;
@@ -164,16 +209,20 @@ int main(void) {
     /* Insert your solution below */
 	unsigned long B_elapsedTime = 1000;
 	unsigned long T_elapsedTime = 300;
-	unsigned long timerPeriod = 2;
+	unsigned long A_elapsedTime = frequency;
+	unsigned long R_elapsedTime = 100;
+	unsigned long timerPeriod = 1;
 	unsigned char button = 0x00;
 	B_State = B_Start;
 	T_State = T_Start;
 	A_State = A_Start;
 	D_State = D_Start;
+	R_State = R_Start;
+	frequency = 2;
 	TimerSet(timerPeriod);
 	TimerOn();
     while (1) {
-	    button = ~PINA & 0x01;
+	button = ~PINA & 0x07;
 	if(B_elapsedTime >= 1000) {
 		BlinkingLEDSM();
 		B_elapsedTime = 0;
@@ -182,12 +231,21 @@ int main(void) {
 		ThreeLEDsSM();
 		T_elapsedTime = 0;
 	}
-	Speaker(button);
+	if(A_elapsedTime >= frequency) {
+		Speaker(button);
+		A_elapsedTime = 0;
+	}
+	if(R_elapsedTime >= 100) {
+		Receive(button);
+		R_elapsedTime = 0;
+	}
 	CombinedLEDsSM();
 	while(!TimerFlag) {};
 	TimerFlag = 0;
 	B_elapsedTime += timerPeriod;
 	T_elapsedTime += timerPeriod;
+	A_elapsedTime += timerPeriod;
+	R_elapsedTime += timerPeriod;
     }
     return 1;
 }
