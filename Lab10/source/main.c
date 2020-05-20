@@ -15,6 +15,7 @@
 
 unsigned char blinkingLED;
 unsigned char threeLEDs;
+unsigned char audio;
 
 enum B_State {B_Start, B_On, B_Off} B_State;
 void BlinkingLEDSM() {
@@ -85,6 +86,36 @@ void ThreeLEDsSM() {
 			
 }	
 
+enum A_State {A_Start, A_onl, A_onh} A_State;
+void Speaker() {
+	switch(A_State) {
+		case A_Start:
+			A_State = A_onh;
+			break;
+		case A_onh:
+			A_State = A_onl;
+			break;
+		case A_onl:
+			A_State = A_onh;
+			break;
+		default:
+			A_State = A_Start;
+			break;
+	}
+
+	switch (A_State) {
+		case A_Start:
+			break;
+		case A_onh:
+			audio = 0x10;
+			break;
+		case A_onl:
+			audio = 0x00;
+			break;
+		default:
+			break;
+	}
+}
 enum D_State {D_Start, D_Output} D_State;
 void CombinedLEDsSM() {
 	switch(D_State) {
@@ -103,7 +134,7 @@ void CombinedLEDsSM() {
 		case D_Start:
 			break;
 		case D_Output:
-			PORTB = blinkingLED | threeLEDs;
+			PORTB = blinkingLED | threeLEDs | audio;
 			break;
 		default:
 			break;
@@ -114,12 +145,16 @@ int main(void) {
     /* Insert DDR and PORT initializations */
 	DDRB = 0xFF;
 	PORTB = 0x00;
+	DDRA = 0x00;
+	PORTA = 0xFF;
     /* Insert your solution below */
 	unsigned long B_elapsedTime = 1000;
 	unsigned long T_elapsedTime = 300;
-	unsigned long timerPeriod = 100;
+	unsigned long D_elapsedTime = 100;
+	unsigned long timerPeriod = 2;
 	B_State = B_Start;
 	T_State = T_Start;
+	A_State = A_Start;
 	D_State = D_Start;
 	TimerSet(timerPeriod);
 	TimerOn();
@@ -132,11 +167,16 @@ int main(void) {
 		ThreeLEDsSM();
 		T_elapsedTime = 0;
 	}
-	CombinedLEDsSM();
+	Speaker();
+	if(D_elapsedTime >= 100) {
+		CombinedLEDsSM();
+		D_elapsedTime = 0;
+	}
 	while(!TimerFlag) {};
 	TimerFlag = 0;
 	B_elapsedTime += timerPeriod;
 	T_elapsedTime += timerPeriod;
+	D_elapsedTime += timerPeriod;
     }
     return 1;
 }
