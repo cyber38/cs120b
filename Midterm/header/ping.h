@@ -14,7 +14,7 @@ void Ping()
         case PInit:
 		l = 0;
 		h = 0;
-		ping_state = PIhigh;
+		ping_state = PIlow;
             break;
 	case PIlow:
 	    	if(l < 9) {
