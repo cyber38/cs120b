@@ -12,17 +12,19 @@ void Ping()
     switch(ping_state)
     {
         case PInit:
+		l = 0;
+		h = 0;
 		ping_state = PIhigh;
             break;
 	case PIlow:
-	    	if(l < 90) {
+	    	if(l < 9) {
 			ping_state = PIlow;
 		} else {
 	        	ping_state = PIhigh;
 		}
 	    break;
 	case PIhigh:
-	    	if(h < 10) {
+	    	if(h < 1) {
 	    		ping_state = PIhigh;
 		} else {
 			h = 0;
