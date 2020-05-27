@@ -27,12 +27,12 @@ void Detect_EQ()
         case DEQInit:
             break;
 	case DEQCapture:
-            amplitude = (PINA >> 3) & 0x1F;
+            amplitude = (input >> 3) & 0x1F;
 	    if(amplitude == 0) {
 		    detected = 0;
             } else {
 		    detected = 1;
-		    direction = PINA | 0x03;
+		    direction = input | 0x03;
 	    }
 
 	    break;

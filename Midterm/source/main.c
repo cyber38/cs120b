@@ -26,6 +26,7 @@ unsigned char max = 0;
 unsigned char first;
 unsigned char zero_crossing;
 unsigned char detected;
+unsigned char input;
 /* state variables --- do not alter */
 ping_states ping_state;
 detect_eq_states detect_eq_state;
@@ -64,6 +65,7 @@ int main(void) {
     
     unsigned long PI_time = 1000;
     while (1) {
+	input = ~PINA;
 	if(PI_time >= 1000) {
         	Ping();
 		PI_time = 0;
